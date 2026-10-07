@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 =============================================================
   Dtex Silent Uninstaller Generator  (tested syntax: v6.x)
@@ -50,6 +51,10 @@ def _build_launcher(exe_path, account, password):
     e_ac = _xor(account,  key)
     e_pw = _xor(password, key)
 
+    # NOTE: subprocess receives a list — each element is passed verbatim as its
+    # own argument.  '/qn' must have ZERO leading spaces or the uninstaller will
+    # not recognise it and will show the GUI.  The documented Dtex 6.x command is:
+    #   Release.exe /x // /qn ACCOUNTNAME=… PASSWORD=…
     return (
         "import subprocess as _s\n"
         "def _r(d,k):\n"
@@ -64,8 +69,8 @@ def _build_launcher(exe_path, account, password):
         "    n=_r(_b,_k)\n"
         "    p=_r(_c,_k)\n"
         "    _s.run(\n"
-        "        [x,'/x','//','  /qn',f'ACCOUNTNAME={n}',f'PASSWORD={p}'],\n"  # /qn = quiet/no UI
-        "        creationflags=0x08000000,\n"   # CREATE_NO_WINDOW
+        "        [x,'/x','//','/qn',f'ACCOUNTNAME={n}',f'PASSWORD={p}'],\n"
+        "        creationflags=0x08000000,\n"
         "        check=False\n"
         "    )\n"
         "_m()\n"
