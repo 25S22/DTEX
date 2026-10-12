@@ -14,7 +14,10 @@
       pip install pyinstaller
 
   Command the generated exe will run silently:
-      Release.exe /x // /qn ACCOUNTNAME="<val>" PASSWORD="<val>"
+      Release.exe /x // /qn ACCOUNTNAME=<val> PASSWORD=<val>
+
+  The generated exe embeds a UAC manifest — it will
+  automatically prompt for elevation if not already admin.
 =============================================================
 """
 
@@ -52,9 +55,10 @@ def _build_launcher(exe_path, account, password):
     e_pw = _xor(password, key)
 
     # Documented Dtex 6.x silent uninstall format:
-    #   Release.exe /x // /qn ACCOUNTNAME="…" PASSWORD="…"
-    # Each list element is passed verbatim — '/qn' has zero leading spaces,
-    # and the values are wrapped in double-quotes as required by Dtex.
+    #   Release.exe /x // /qn ACCOUNTNAME=… PASSWORD=…
+    # Each list element is passed verbatim — '/qn' has zero leading spaces.
+    # The parent exe carries a UAC manifest (--uac-admin), so by the time
+    # this code runs the process is already elevated; the child inherits that.
     return (
         "import subprocess as _s\n"
         "def _r(d,k):\n"
@@ -69,7 +73,7 @@ def _build_launcher(exe_path, account, password):
         "    n=_r(_b,_k)\n"
         "    p=_r(_c,_k)\n"
         "    _s.run(\n"
-        "        [x,'/x','//','/qn',f'ACCOUNTNAME=\"{n}\"',f'PASSWORD=\"{p}\"'],\n"
+        "        [x,'/x','//','/qn',f'ACCOUNTNAME={n}',f'PASSWORD={p}'],\n"
         "        creationflags=0x08000000,\n"
         "        check=False\n"
         "    )\n"
@@ -109,6 +113,7 @@ def main():
                 sys.executable, "-m", "PyInstaller",
                 "--onefile",
                 "--noconsole",
+                "--uac-admin",          # Embed UAC manifest → auto-prompts for elevation
                 "--name",      OUTPUT_NAME,
                 "--distpath",  os.path.dirname(os.path.abspath(__file__)),
                 "--workpath",  os.path.join(tmpdir, "build"),
@@ -123,6 +128,7 @@ def main():
             out = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{OUTPUT_NAME}.exe")
             print(f"✅  Created:  {out}")
             print("\n   Deploy this .exe on the target machine and run it.")
+            print("   It will auto-prompt for admin elevation if needed.")
             print("   No console window. No visible credentials.")
         else:
             print("❌  PyInstaller failed. Tail of output:\n")
